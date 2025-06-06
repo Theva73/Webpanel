@@ -1,182 +1,372 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Customizable 4-Page Dashboard</title>
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-    }
-    #controls {
-      background: #222;
-      color: #fff;
-      padding: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    #controls input {
-      width: 200px;
-      margin-right: 5px;
-    }
-    #layoutSelect {
-      padding: 5px;
-    }
-    .container {
-      display: grid;
-      grid-template-columns: 1fr 5px 1fr;
-      grid-template-rows: 1fr 5px 1fr;
-      height: calc(100vh - 50px);
-    }
-    .pane {
-      width: 100%;
-      height: 100%;
-    }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-    .divider {
-      background: #ccc;
-      z-index: 10;
-    }
-    .divider.row {
-      cursor: row-resize;
-      grid-column: 1 / 4;
-    }
-    .divider.col {
-      cursor: col-resize;
-      grid-row: 1 / 4;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fully Adjustable 4-Panel Dashboard</title>
+    <style>
+        /* Basic setup */
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #333;
+        }
+
+        /* Controls bar at the top */
+        #controls {
+            background: #2a2a2a;
+            color: #fff;
+            padding: 0 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+            height: 40px; /* Fixed height */
+            box-sizing: border-box;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        #controls input[type="url"] {
+            width: 180px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background-color: #333;
+            color: #eee;
+        }
+
+        #controls button,
+        #controls select {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background-color: #444;
+            color: #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #controls button:hover,
+        #controls select:hover {
+            background-color: #555;
+        }
+
+        /* Main container for the dashboard */
+        #dashboard {
+            display: grid;
+            height: calc(100vh - 40px);
+            width: 100%;
+            background-color: #1e1e1e;
+        }
+
+        /* IFRAME panels */
+        .pane {
+            overflow: hidden;
+            position: relative;
+            background-color: #000;
+            min-width: 50px; /* Prevent shrinking too much */
+            min-height: 50px;
+        }
+
+        .pane iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Resizing dividers */
+        .divider {
+            background-color: #444;
+            z-index: 10;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+
+        .divider:hover, .resizing {
+            background-color: #007acc;
+        }
+        
+        /* Draggable handle visual */
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ffffff44;
+            border-radius: 4px;
+        }
+        
+        .divider-col {
+            cursor: col-resize;
+        }
+        .divider-col::after {
+            width: 3px;
+            height: 30px;
+        }
+
+        .divider-row {
+            cursor: row-resize;
+        }
+        .divider-row::after {
+            width: 30px;
+            height: 3px;
+        }
+        
+        /* --- Layout Specific Styles --- */
+        /* Default state: hide all dividers */
+        .divider { display: none; }
+
+        /* 2x2 Layout (Default) */
+        .layout-2x2 {
+            grid-template-columns: 1fr 5px 1fr;
+            grid-template-rows: 1fr 5px 1fr;
+        }
+        .layout-2x2 .pane1 { grid-column: 1; grid-row: 1; }
+        .layout-2x2 .pane2 { grid-column: 3; grid-row: 1; }
+        .layout-2x2 .pane3 { grid-column: 1; grid-row: 3; }
+        .layout-2x2 .pane4 { grid-column: 3; grid-row: 3; }
+        .layout-2x2 .v-divider1 { display: block; grid-column: 2; grid-row: 1 / span 3; }
+        .layout-2x2 .h-divider1 { display: block; grid-column: 1 / span 3; grid-row: 2; }
+
+        /* 1x4 Layout */
+        .layout-1x4 {
+            grid-template-columns: 1fr 5px 1fr 5px 1fr 5px 1fr;
+            grid-template-rows: 1fr;
+        }
+        .layout-1x4 .pane1 { grid-column: 1; }
+        .layout-1x4 .pane2 { grid-column: 3; }
+        .layout-1x4 .pane3 { grid-column: 5; }
+        .layout-1x4 .pane4 { grid-column: 7; }
+        .layout-1x4 .v-divider1 { display: block; grid-column: 2; }
+        .layout-1x4 .v-divider2 { display: block; grid-column: 4; }
+        .layout-1x4 .v-divider3 { display: block; grid-column: 6; }
+       
+        /* 4x1 Layout */
+        .layout-4x1 {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr 5px 1fr 5px 1fr 5px 1fr;
+        }
+        .layout-4x1 .pane1 { grid-row: 1; }
+        .layout-4x1 .pane2 { grid-row: 3; }
+        .layout-4x1 .pane3 { grid-row: 5; }
+        .layout-4x1 .pane4 { grid-row: 7; }
+        .layout-4x1 .h-divider1 { display: block; grid-row: 2; }
+        .layout-4x1 .h-divider2 { display: block; grid-row: 4; }
+        .layout-4x1 .h-divider3 { display: block; grid-row: 6; }
+    </style>
 </head>
 <body>
+    <div id="controls">
+        <div class="control-group">
+            <input type="url" id="url1" placeholder="URL Panel 1" />
+            <input type="url" id="url2" placeholder="URL Panel 2" />
+            <input type="url" id="url3" placeholder="URL Panel 3" />
+            <input type="url" id="url4" placeholder="URL Panel 4" />
+        </div>
+        <div class="control-group">
+            <button onclick="updateAndSaveURLs()">🚀 Load & Save</button>
+            <label for="layoutSelect">Layout:</label>
+            <select id="layoutSelect" onchange="switchLayout(this.value)">
+                <option value="2x2">2x2</option>
+                <option value="1x4">1x4</option>
+                <option value="4x1">4x1</option>
+            </select>
+        </div>
+    </div>
 
-<div id="controls">
-  <div>
-    <input id="url1" placeholder="URL for Panel 1" />
-    <input id="url2" placeholder="URL for Panel 2" />
-    <input id="url3" placeholder="URL for Panel 3" />
-    <input id="url4" placeholder="URL for Panel 4" />
-    <button onclick="saveURLs()">💾 Save</button>
-    <button onclick="loadURLs()">🔄 Load</button>
-  </div>
-  <div>
-    <label for="layoutSelect">Layout:</label>
-    <select id="layoutSelect" onchange="switchLayout(this.value)">
-      <option value="2x2">2×2</option>
-      <option value="1x4">1×4</option>
-      <option value="4x1">4×1</option>
-    </select>
-  </div>
-</div>
+    <div id="dashboard">
+        <!-- Panes -->
+        <div class="pane pane1"><iframe id="iframe1"></iframe></div>
+        <div class="pane pane2"><iframe id="iframe2"></iframe></div>
+        <div class="pane pane3"><iframe id="iframe3"></iframe></div>
+        <div class="pane pane4"><iframe id="iframe4"></iframe></div>
 
-<div class="container" id="dashboard">
-  <div id="pane1" class="pane"><iframe id="iframe1" src="https://example.com"></iframe></div>
-  <div class="divider col" id="colResizer1"></div>
-  <div id="pane2" class="pane"><iframe id="iframe2" src="https://example.org"></iframe></div>
-  <div class="divider row" id="rowResizer"></div>
-  <div id="pane3" class="pane"><iframe id="iframe3" src="https://example.net"></iframe></div>
-  <div class="divider col" id="colResizer2"></div>
-  <div id="pane4" class="pane"><iframe id="iframe4" src="https://wikipedia.org"></iframe></div>
-</div>
+        <!-- Dividers -->
+        <div class="divider divider-col v-divider1" data-resizer="v1"></div>
+        <div class="divider divider-col v-divider2" data-resizer="v2"></div>
+        <div class="divider divider-col v-divider3" data-resizer="v3"></div>
+        <div class="divider divider-row h-divider1" data-resizer="h1"></div>
+        <div class="divider divider-row h-divider2" data-resizer="h2"></div>
+        <div class="divider divider-row h-divider3" data-resizer="h3"></div>
+    </div>
 
-<script>
-  const container = document.getElementById("dashboard");
-  const colResizer1 = document.getElementById("colResizer1");
-  const colResizer2 = document.getElementById("colResizer2");
-  const rowResizer = document.getElementById("rowResizer");
+    <script>
+        const dashboard = document.getElementById('dashboard');
+        const layoutSelect = document.getElementById('layoutSelect');
+        const urlInputs = [
+            document.getElementById('url1'), document.getElementById('url2'),
+            document.getElementById('url3'), document.getElementById('url4')
+        ];
+        const iframes = [
+            document.getElementById('iframe1'), document.getElementById('iframe2'),
+            document.getElementById('iframe3'), document.getElementById('iframe4')
+        ];
 
-  let isDraggingCol1 = false;
-  let isDraggingCol2 = false;
-  let isDraggingRow = false;
+        let currentLayout = '2x2';
+        const minPanelSize = 50; // Minimum size in pixels for a panel
 
-  colResizer1.addEventListener("mousedown", () => isDraggingCol1 = true);
-  colResizer2.addEventListener("mousedown", () => isDraggingCol2 = true);
-  rowResizer.addEventListener("mousedown", () => isDraggingRow = true);
+        // --- Resizing Logic ---
+        function initializeResizing() {
+            let activeResizer = null;
 
-  document.addEventListener("mouseup", () => {
-    isDraggingCol1 = false;
-    isDraggingCol2 = false;
-    isDraggingRow = false;
-  });
+            document.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('divider')) {
+                    activeResizer = e.target;
+                    activeResizer.classList.add('resizing');
+                    document.body.style.userSelect = 'none';
+                    
+                    // Convert fr units to px on first drag
+                    let grid = dashboard;
+                    let computedStyle = window.getComputedStyle(grid);
+                    if (grid.style.gridTemplateColumns.includes('fr')) {
+                       grid.style.gridTemplateColumns = computedStyle.gridTemplateColumns;
+                    }
+                    if (grid.style.gridTemplateRows.includes('fr')) {
+                       grid.style.gridTemplateRows = computedStyle.gridTemplateRows;
+                    }
+                }
+            });
 
-  document.addEventListener("mousemove", (e) => {
-    if (isDraggingCol1) {
-      const percent = (e.clientX / window.innerWidth) * 100;
-      container.style.gridTemplateColumns = `${percent}% 5px ${100 - percent}%`;
-    }
-    if (isDraggingRow) {
-      const percent = ((e.clientY - 50) / (window.innerHeight - 50)) * 100;
-      container.style.gridTemplateRows = `${percent}% 5px ${100 - percent}%`;
-    }
-  });
+            document.addEventListener('mouseup', () => {
+                if(activeResizer) {
+                    activeResizer.classList.remove('resizing');
+                    saveLayoutDimensions();
+                }
+                activeResizer = null;
+                document.body.style.userSelect = '';
+            });
 
-  function saveURLs() {
-    localStorage.setItem("panelUrls", JSON.stringify([
-      document.getElementById("url1").value,
-      document.getElementById("url2").value,
-      document.getElementById("url3").value,
-      document.getElementById("url4").value
-    ]));
-    updateIframes();
-  }
+            document.addEventListener('mousemove', (e) => {
+                if (!activeResizer) return;
+                
+                requestAnimationFrame(() => {
+                    const grid = dashboard;
+                    const rect = grid.getBoundingClientRect();
+                    
+                    if (activeResizer.classList.contains('divider-col')) {
+                        const cols = grid.style.gridTemplateColumns.split(' ').map(p => parseFloat(p));
+                        const resizerType = activeResizer.dataset.resizer;
+                        
+                        let targetIndex;
+                        if (resizerType === 'v1') targetIndex = 0;
+                        if (resizerType === 'v2') targetIndex = 2;
+                        if (resizerType === 'v3') targetIndex = 4;
 
-  function loadURLs() {
-    const urls = JSON.parse(localStorage.getItem("panelUrls")) || [];
-    if (urls.length === 4) {
-      document.getElementById("url1").value = urls[0];
-      document.getElementById("url2").value = urls[1];
-      document.getElementById("url3").value = urls[2];
-      document.getElementById("url4").value = urls[3];
-      updateIframes();
-    }
-  }
+                        const totalWidthForPair = cols[targetIndex] + cols[targetIndex + 2];
+                        let mouseX = e.clientX - rect.left;
+                        let newWidth = mouseX - (cols.slice(0, targetIndex).reduce((a, b) => a + b, 0) || 0) - (cols[targetIndex+1] / 2);
 
-  function updateIframes() {
-    document.getElementById("iframe1").src = document.getElementById("url1").value || "https://example.com";
-    document.getElementById("iframe2").src = document.getElementById("url2").value || "https://example.org";
-    document.getElementById("iframe3").src = document.getElementById("url3").value || "https://example.net";
-    document.getElementById("iframe4").src = document.getElementById("url4").value || "https://wikipedia.org";
-  }
+                        // Clamp width
+                        newWidth = Math.max(minPanelSize, newWidth);
+                        newWidth = Math.min(newWidth, totalWidthForPair - minPanelSize);
 
-  function switchLayout(type) {
-    switch (type) {
-      case "1x4":
-        container.style.gridTemplateColumns = "1fr 5px 1fr 5px 1fr 5px 1fr";
-        container.style.gridTemplateRows = "1fr";
-        rearrangePanels(["pane1", "colResizer1", "pane2", "colResizer2", "pane3", "pane4"]);
-        break;
-      case "4x1":
-        container.style.gridTemplateColumns = "1fr";
-        container.style.gridTemplateRows = "1fr 5px 1fr 5px 1fr 5px 1fr";
-        rearrangePanels(["pane1", "rowResizer", "pane2", "pane3", "pane4"]);
-        break;
-      case "2x2":
-      default:
-        container.style.gridTemplateColumns = "1fr 5px 1fr";
-        container.style.gridTemplateRows = "1fr 5px 1fr";
-        rearrangePanels(["pane1", "colResizer1", "pane2", "rowResizer", "pane3", "colResizer2", "pane4"]);
-        break;
-    }
-  }
+                        cols[targetIndex] = newWidth;
+                        cols[targetIndex + 2] = totalWidthForPair - newWidth;
+                        
+                        grid.style.gridTemplateColumns = cols.map(c => `${c}px`).join(' ');
 
-  function rearrangePanels(ids) {
-    container.innerHTML = "";
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) container.appendChild(el);
-    });
-  }
+                    } else { // divider-row
+                        const rows = grid.style.gridTemplateRows.split(' ').map(p => parseFloat(p));
+                        const resizerType = activeResizer.dataset.resizer;
+                        
+                        let targetIndex;
+                        if (resizerType === 'h1') targetIndex = 0;
+                        if (resizerType === 'h2') targetIndex = 2;
+                        if (resizerType === 'h3') targetIndex = 4;
+                        
+                        const totalHeightForPair = rows[targetIndex] + rows[targetIndex + 2];
+                        let mouseY = e.clientY - rect.top;
+                        let newHeight = mouseY - (rows.slice(0, targetIndex).reduce((a, b) => a + b, 0) || 0) - (rows[targetIndex+1] / 2);
 
-  // Load from localStorage on page load
-  window.onload = loadURLs;
-</script>
+                        // Clamp height
+                        newHeight = Math.max(minPanelSize, newHeight);
+                        newHeight = Math.min(newHeight, totalHeightForPair - minPanelSize);
 
+                        rows[targetIndex] = newHeight;
+                        rows[targetIndex + 2] = totalHeightForPair - newHeight;
+
+                        grid.style.gridTemplateRows = rows.map(r => `${r}px`).join(' ');
+                    }
+                });
+            });
+        }
+        
+        // --- Layout and URL Management ---
+        function switchLayout(layout, restore = true) {
+            currentLayout = layout;
+            dashboard.className = `layout-${layout}`;
+            localStorage.setItem('dashboardLayout', layout);
+            
+            const savedDimensions = JSON.parse(localStorage.getItem(`layoutDimensions-${currentLayout}`));
+            if (restore && savedDimensions) {
+                dashboard.style.gridTemplateColumns = savedDimensions.cols;
+                dashboard.style.gridTemplateRows = savedDimensions.rows;
+            } else {
+                 // Reset to default fractional units
+                if (layout === '2x2') {
+                    dashboard.style.gridTemplateColumns = '1fr 5px 1fr';
+                    dashboard.style.gridTemplateRows = '1fr 5px 1fr';
+                } else if (layout === '1x4') {
+                    dashboard.style.gridTemplateColumns = '1fr 5px 1fr 5px 1fr 5px 1fr';
+                    dashboard.style.gridTemplateRows = '1fr';
+                } else if (layout === '4x1') {
+                    dashboard.style.gridTemplateColumns = '1fr';
+                    dashboard.style.gridTemplateRows = '1fr 5px 1fr 5px 1fr 5px 1fr';
+                }
+            }
+        }
+
+        function updateAndSaveURLs() {
+            const urls = urlInputs.map(input => input.value);
+            localStorage.setItem('dashboardURLs', JSON.stringify(urls));
+            loadIframes(urls);
+        }
+
+        function loadIframes(urls) {
+            iframes.forEach((iframe, index) => {
+                const url = urls[index];
+                if (iframe.src !== url && url) {
+                    iframe.src = url;
+                } else if (!url) {
+                    iframe.src = 'about:blank';
+                }
+            });
+        }
+        
+        function saveLayoutDimensions() {
+            const dimensions = {
+                cols: dashboard.style.gridTemplateColumns,
+                rows: dashboard.style.gridTemplateRows
+            };
+            localStorage.setItem(`layoutDimensions-${currentLayout}`, JSON.stringify(dimensions));
+        }
+
+        // --- On Page Load ---
+        function initializeDashboard() {
+            const savedLayout = localStorage.getItem('dashboardLayout') || '2x2';
+            layoutSelect.value = savedLayout;
+            switchLayout(savedLayout, true);
+
+            const savedURLs = JSON.parse(localStorage.getItem('dashboardURLs')) || ['', '', '', ''];
+            urlInputs.forEach((input, index) => { input.value = savedURLs[index] || ''; });
+            loadIframes(savedURLs);
+
+            initializeResizing();
+        }
+
+        window.onload = initializeDashboard;
+    </script>
 </body>
 </html>
