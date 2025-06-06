@@ -83,6 +83,7 @@
             width: 100%;
             height: 100%;
             border: none;
+            background-color: #fff; /* White background for empty iframes */
         }
 
         /* Resizing dividers */
@@ -228,8 +229,10 @@
                 if (target.classList.contains('divider')) {
                     activeResizer = target;
                     activeResizer.classList.add('resizing');
+                    // Prevent text selection during drag
                     document.body.style.userSelect = 'none';
                     
+                    // Convert fr units to px on first drag for consistent calculations
                     let grid = dashboard;
                     let computedStyle = window.getComputedStyle(grid);
                     if (grid.style.gridTemplateColumns.includes('fr')) {
@@ -253,9 +256,12 @@
             const drag = (e) => {
                 if (!activeResizer) return;
                 
-                // Use touch event's coordinates if available
-                const clientX = e.clientX || e.touches[0].clientX;
-                const clientY = e.clientY || e.touches[0].clientY;
+                // Prevent default touch actions like scrolling
+                e.preventDefault();
+
+                // Use touch event's coordinates if available, otherwise use mouse coordinates
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
                 requestAnimationFrame(() => {
                     const grid = dashboard;
@@ -267,13 +273,15 @@
                         
                         let targetIndex;
                         if (resizerType === 'v1') targetIndex = 0;
-                        if (resizerType === 'v2') targetIndex = 2;
-                        if (resizerType === 'v3') targetIndex = 4;
+                        else if (resizerType === 'v2') targetIndex = 2;
+                        else if (resizerType === 'v3') targetIndex = 4;
+                        else return;
 
                         const totalWidthForPair = cols[targetIndex] + cols[targetIndex + 2];
                         let mouseX = clientX - rect.left;
                         let newWidth = mouseX - (cols.slice(0, targetIndex).reduce((a, b) => a + b, 0) || 0) - (cols[targetIndex+1] / 2);
 
+                        // Clamp width to prevent panels from becoming too small
                         newWidth = Math.max(minPanelSize, newWidth);
                         newWidth = Math.min(newWidth, totalWidthForPair - minPanelSize);
 
@@ -288,13 +296,15 @@
                         
                         let targetIndex;
                         if (resizerType === 'h1') targetIndex = 0;
-                        if (resizerType === 'h2') targetIndex = 2;
-                        if (resizerType === 'h3') targetIndex = 4;
+                        else if (resizerType === 'h2') targetIndex = 2;
+                        else if (resizerType === 'h3') targetIndex = 4;
+                        else return;
                         
                         const totalHeightForPair = rows[targetIndex] + rows[targetIndex + 2];
                         let mouseY = clientY - rect.top;
                         let newHeight = mouseY - (rows.slice(0, targetIndex).reduce((a, b) => a + b, 0) || 0) - (rows[targetIndex+1] / 2);
 
+                        // Clamp height
                         newHeight = Math.max(minPanelSize, newHeight);
                         newHeight = Math.min(newHeight, totalHeightForPair - minPanelSize);
 
@@ -312,9 +322,9 @@
             document.addEventListener('mousemove', drag);
             
             // Touch Events
-            document.addEventListener('touchstart', startDrag);
+            document.addEventListener('touchstart', startDrag, { passive: false });
             document.addEventListener('touchend', endDrag);
-            document.addEventListener('touchmove', drag);
+            document.addEventListener('touchmove', drag, { passive: false });
         }
         
         // --- Layout and URL Management ---
@@ -325,7 +335,7 @@
             
             const savedDimensions = JSON.parse(localStorage.getItem(`layoutDimensions-${currentLayout}`));
             
-            if (restoreOnLoad && savedDimensions) {
+            if (restoreOnLoad && savedDimensions && savedDimensions.cols && savedDimensions.rows) {
                 dashboard.style.gridTemplateColumns = savedDimensions.cols;
                 dashboard.style.gridTemplateRows = savedDimensions.rows;
             } else {
@@ -340,6 +350,7 @@
                     dashboard.style.gridTemplateColumns = '1fr';
                     dashboard.style.gridTemplateRows = '1fr 5px 1fr 5px 1fr 5px 1fr';
                 }
+                 saveLayoutDimensions(); // Save the new default dimensions
             }
         }
 
