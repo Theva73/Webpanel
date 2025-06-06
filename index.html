@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>Fully Adjustable 4-Panel Dashboard</title>
     <style>
         /* Basic setup */
@@ -91,6 +91,8 @@
             z-index: 10;
             transition: background-color 0.2s;
             position: relative;
+            -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-user-select: none;   /* Safari */
         }
 
         .divider:hover, .resizing {
@@ -178,7 +180,7 @@
         <div class="control-group">
             <button onclick="updateAndSaveURLs()">🚀 Load & Save</button>
             <label for="layoutSelect">Layout:</label>
-            <select id="layoutSelect" onchange="switchLayout(this.value)">
+            <select id="layoutSelect" onchange="switchLayout(this.value, false)">
                 <option value="2x2">2x2</option>
                 <option value="1x4">1x4</option>
                 <option value="4x1">4x1</option>
@@ -217,17 +219,17 @@
         let currentLayout = '2x2';
         const minPanelSize = 50; // Minimum size in pixels for a panel
 
-        // --- Resizing Logic ---
+        // --- Resizing Logic (Now with Touch Support) ---
         function initializeResizing() {
             let activeResizer = null;
 
-            document.addEventListener('mousedown', (e) => {
-                if (e.target.classList.contains('divider')) {
-                    activeResizer = e.target;
+            const startDrag = (e) => {
+                const target = e.target;
+                if (target.classList.contains('divider')) {
+                    activeResizer = target;
                     activeResizer.classList.add('resizing');
                     document.body.style.userSelect = 'none';
                     
-                    // Convert fr units to px on first drag
                     let grid = dashboard;
                     let computedStyle = window.getComputedStyle(grid);
                     if (grid.style.gridTemplateColumns.includes('fr')) {
@@ -237,20 +239,24 @@
                        grid.style.gridTemplateRows = computedStyle.gridTemplateRows;
                     }
                 }
-            });
+            };
 
-            document.addEventListener('mouseup', () => {
+            const endDrag = () => {
                 if(activeResizer) {
                     activeResizer.classList.remove('resizing');
                     saveLayoutDimensions();
                 }
                 activeResizer = null;
                 document.body.style.userSelect = '';
-            });
+            };
 
-            document.addEventListener('mousemove', (e) => {
+            const drag = (e) => {
                 if (!activeResizer) return;
                 
+                // Use touch event's coordinates if available
+                const clientX = e.clientX || e.touches[0].clientX;
+                const clientY = e.clientY || e.touches[0].clientY;
+
                 requestAnimationFrame(() => {
                     const grid = dashboard;
                     const rect = grid.getBoundingClientRect();
@@ -265,10 +271,9 @@
                         if (resizerType === 'v3') targetIndex = 4;
 
                         const totalWidthForPair = cols[targetIndex] + cols[targetIndex + 2];
-                        let mouseX = e.clientX - rect.left;
+                        let mouseX = clientX - rect.left;
                         let newWidth = mouseX - (cols.slice(0, targetIndex).reduce((a, b) => a + b, 0) || 0) - (cols[targetIndex+1] / 2);
 
-                        // Clamp width
                         newWidth = Math.max(minPanelSize, newWidth);
                         newWidth = Math.min(newWidth, totalWidthForPair - minPanelSize);
 
@@ -287,10 +292,9 @@
                         if (resizerType === 'h3') targetIndex = 4;
                         
                         const totalHeightForPair = rows[targetIndex] + rows[targetIndex + 2];
-                        let mouseY = e.clientY - rect.top;
+                        let mouseY = clientY - rect.top;
                         let newHeight = mouseY - (rows.slice(0, targetIndex).reduce((a, b) => a + b, 0) || 0) - (rows[targetIndex+1] / 2);
 
-                        // Clamp height
                         newHeight = Math.max(minPanelSize, newHeight);
                         newHeight = Math.min(newHeight, totalHeightForPair - minPanelSize);
 
@@ -300,21 +304,32 @@
                         grid.style.gridTemplateRows = rows.map(r => `${r}px`).join(' ');
                     }
                 });
-            });
+            };
+
+            // Mouse Events
+            document.addEventListener('mousedown', startDrag);
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('mousemove', drag);
+            
+            // Touch Events
+            document.addEventListener('touchstart', startDrag);
+            document.addEventListener('touchend', endDrag);
+            document.addEventListener('touchmove', drag);
         }
         
         // --- Layout and URL Management ---
-        function switchLayout(layout, restore = true) {
+        function switchLayout(layout, restoreOnLoad = true) {
             currentLayout = layout;
             dashboard.className = `layout-${layout}`;
             localStorage.setItem('dashboardLayout', layout);
             
             const savedDimensions = JSON.parse(localStorage.getItem(`layoutDimensions-${currentLayout}`));
-            if (restore && savedDimensions) {
+            
+            if (restoreOnLoad && savedDimensions) {
                 dashboard.style.gridTemplateColumns = savedDimensions.cols;
                 dashboard.style.gridTemplateRows = savedDimensions.rows;
             } else {
-                 // Reset to default fractional units
+                 // Reset to default fractional units for a clean slate
                 if (layout === '2x2') {
                     dashboard.style.gridTemplateColumns = '1fr 5px 1fr';
                     dashboard.style.gridTemplateRows = '1fr 5px 1fr';
@@ -337,10 +352,8 @@
         function loadIframes(urls) {
             iframes.forEach((iframe, index) => {
                 const url = urls[index];
-                if (iframe.src !== url && url) {
-                    iframe.src = url;
-                } else if (!url) {
-                    iframe.src = 'about:blank';
+                if (iframe.src !== url) {
+                   iframe.src = url || 'about:blank';
                 }
             });
         }
