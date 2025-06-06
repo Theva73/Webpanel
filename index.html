@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Customizable 4-Page Dashboard</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    #controls {
+      background: #222;
+      color: #fff;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #controls input {
+      width: 200px;
+      margin-right: 5px;
+    }
+    #layoutSelect {
+      padding: 5px;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 5px 1fr;
+      grid-template-rows: 1fr 5px 1fr;
+      height: calc(100vh - 50px);
+    }
+    .pane {
+      width: 100%;
+      height: 100%;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .divider {
+      background: #ccc;
+      z-index: 10;
+    }
+    .divider.row {
+      cursor: row-resize;
+      grid-column: 1 / 4;
+    }
+    .divider.col {
+      cursor: col-resize;
+      grid-row: 1 / 4;
+    }
+  </style>
+</head>
+<body>
+
+<div id="controls">
+  <div>
+    <input id="url1" placeholder="URL for Panel 1" />
+    <input id="url2" placeholder="URL for Panel 2" />
+    <input id="url3" placeholder="URL for Panel 3" />
+    <input id="url4" placeholder="URL for Panel 4" />
+    <button onclick="saveURLs()">💾 Save</button>
+    <button onclick="loadURLs()">🔄 Load</button>
+  </div>
+  <div>
+    <label for="layoutSelect">Layout:</label>
+    <select id="layoutSelect" onchange="switchLayout(this.value)">
+      <option value="2x2">2×2</option>
+      <option value="1x4">1×4</option>
+      <option value="4x1">4×1</option>
+    </select>
+  </div>
+</div>
+
+<div class="container" id="dashboard">
+  <div id="pane1" class="pane"><iframe id="iframe1" src="https://example.com"></iframe></div>
+  <div class="divider col" id="colResizer1"></div>
+  <div id="pane2" class="pane"><iframe id="iframe2" src="https://example.org"></iframe></div>
+  <div class="divider row" id="rowResizer"></div>
+  <div id="pane3" class="pane"><iframe id="iframe3" src="https://example.net"></iframe></div>
+  <div class="divider col" id="colResizer2"></div>
+  <div id="pane4" class="pane"><iframe id="iframe4" src="https://wikipedia.org"></iframe></div>
+</div>
+
+<script>
+  const container = document.getElementById("dashboard");
+  const colResizer1 = document.getElementById("colResizer1");
+  const colResizer2 = document.getElementById("colResizer2");
+  const rowResizer = document.getElementById("rowResizer");
+
+  let isDraggingCol1 = false;
+  let isDraggingCol2 = false;
+  let isDraggingRow = false;
+
+  colResizer1.addEventListener("mousedown", () => isDraggingCol1 = true);
+  colResizer2.addEventListener("mousedown", () => isDraggingCol2 = true);
+  rowResizer.addEventListener("mousedown", () => isDraggingRow = true);
+
+  document.addEventListener("mouseup", () => {
+    isDraggingCol1 = false;
+    isDraggingCol2 = false;
+    isDraggingRow = false;
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (isDraggingCol1) {
+      const percent = (e.clientX / window.innerWidth) * 100;
+      container.style.gridTemplateColumns = `${percent}% 5px ${100 - percent}%`;
+    }
+    if (isDraggingRow) {
+      const percent = ((e.clientY - 50) / (window.innerHeight - 50)) * 100;
+      container.style.gridTemplateRows = `${percent}% 5px ${100 - percent}%`;
+    }
+  });
+
+  function saveURLs() {
+    localStorage.setItem("panelUrls", JSON.stringify([
+      document.getElementById("url1").value,
+      document.getElementById("url2").value,
+      document.getElementById("url3").value,
+      document.getElementById("url4").value
+    ]));
+    updateIframes();
+  }
+
+  function loadURLs() {
+    const urls = JSON.parse(localStorage.getItem("panelUrls")) || [];
+    if (urls.length === 4) {
+      document.getElementById("url1").value = urls[0];
+      document.getElementById("url2").value = urls[1];
+      document.getElementById("url3").value = urls[2];
+      document.getElementById("url4").value = urls[3];
+      updateIframes();
+    }
+  }
+
+  function updateIframes() {
+    document.getElementById("iframe1").src = document.getElementById("url1").value || "https://example.com";
+    document.getElementById("iframe2").src = document.getElementById("url2").value || "https://example.org";
+    document.getElementById("iframe3").src = document.getElementById("url3").value || "https://example.net";
+    document.getElementById("iframe4").src = document.getElementById("url4").value || "https://wikipedia.org";
+  }
+
+  function switchLayout(type) {
+    switch (type) {
+      case "1x4":
+        container.style.gridTemplateColumns = "1fr 5px 1fr 5px 1fr 5px 1fr";
+        container.style.gridTemplateRows = "1fr";
+        rearrangePanels(["pane1", "colResizer1", "pane2", "colResizer2", "pane3", "pane4"]);
+        break;
+      case "4x1":
+        container.style.gridTemplateColumns = "1fr";
+        container.style.gridTemplateRows = "1fr 5px 1fr 5px 1fr 5px 1fr";
+        rearrangePanels(["pane1", "rowResizer", "pane2", "pane3", "pane4"]);
+        break;
+      case "2x2":
+      default:
+        container.style.gridTemplateColumns = "1fr 5px 1fr";
+        container.style.gridTemplateRows = "1fr 5px 1fr";
+        rearrangePanels(["pane1", "colResizer1", "pane2", "rowResizer", "pane3", "colResizer2", "pane4"]);
+        break;
+    }
+  }
+
+  function rearrangePanels(ids) {
+    container.innerHTML = "";
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) container.appendChild(el);
+    });
+  }
+
+  // Load from localStorage on page load
+  window.onload = loadURLs;
+</script>
+
+</body>
+</html>
